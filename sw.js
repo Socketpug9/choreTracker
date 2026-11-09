@@ -1,10 +1,17 @@
 // Offline support. Bump VERSION when files change so phones pick up the new ones.
-const VERSION = 'chores-v1';
+const VERSION = 'stash-v1';
 const FILES = [
   './',
   './index.html',
   './styles.css',
-  './app.js',
+  './js/app.js',
+  './js/fluid.js',
+  './js/scene.js',
+  './vendor/three.js',
+  './fonts/sg-500.woff2',
+  './fonts/sg-700.woff2',
+  './fonts/sg-900.woff2',
+  './fonts/balance-3d.json',
   './manifest.webmanifest',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -23,7 +30,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Try the network first so updates show up right away; use the saved copy when offline.
+// Network first so updates show up right away; the saved copy is used when offline.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;

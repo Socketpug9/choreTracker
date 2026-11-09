@@ -1,34 +1,43 @@
-# choreTracker
+# Stash
 
-A one-person chore tracker that runs on your iPhone like a normal app, with no App Store.
-It's a web app you add to your Home Screen. It works offline, and your chores stay on your phone.
+A personal money tracker that runs on your iPhone like a normal app, with no App Store.
+It's a web app you add to your Home Screen. It works offline, and your data stays on your phone.
 
 ## What it does
 
-- **Today:** what's due today, with late chores at the top. Tap the circle to check a chore off, and tap again to undo.
-- **Repeats:** every day, some days of the week, every few days (counted from when you last did it), or once.
-- **Streaks:** daily and weekly chores show how many times in a row you've done them.
-- **Coming up:** the next week of chores.
-- **All chores:** tap any chore to edit or delete it.
-- **Backup:** save your chores to a file and restore them later.
+- **Balance:** your total at the top, as glossy 3D numbers, with how much it changed this week.
+- **Add / Spend:** big 3D buttons open a keypad. Quick amounts ($5 to $100), an optional note, and a date if you're catching up on past entries. Every change can be undone from the message that pops up.
+- **Graph:** your balance over the last 2 or 4 weeks, and a forecast for the same length of time ahead. Drag across it to see any day.
+- **Forecast:** a straight-line trend through your money in and out over the last 4 weeks. Balance corrections don't count toward it.
+- **Goals:** a target amount, with an optional date. Put a goal on the graph to see its line and the day the forecast reaches it. Goals with a date say whether you're on track, and how much more a week you'd need if not.
+- **Activity:** every entry by day. Tap one to edit or delete it.
+- **Settings:** correct your balance, save or restore a backup, and turn the liquid background off.
+
+## Look
+
+Butter yellow and black, set in Schibsted Grotesk. The background is a live liquid simulation you can push around with your finger.
+The balance, coin, and buttons are real 3D (three.js) and reflect a yellow studio, so they match the page.
 
 ## Put it on your iPhone
 
 1. Open the app's web address in **Safari**.
 2. Tap **Share**, then **Add to Home Screen**, then **Add**.
-3. Open it from the new Chores icon on your Home Screen.
+3. Open it from the new Stash icon.
 
 ## Hosting (GitHub Pages)
 
-The app is plain HTML, CSS, and JavaScript with no build step. Serve the repo root from any static host.
-For GitHub Pages: **Settings → Pages → Build and deployment → Deploy from a branch**, then pick the branch and the `/ (root)` folder.
+Plain HTML, CSS, and JavaScript, with no build step needed to run it. Serve the repo root from any static host.
+For GitHub Pages: **Settings → Pages → Deploy from a branch**, then pick the branch and the `/ (root)` folder.
 
 When you change files, bump `VERSION` in `sw.js` so installed copies pick up the update.
 
 ## Files
 
-- `index.html`: the page
-- `styles.css`: the look (light and dark mode)
-- `app.js`: chores, schedules, streaks, and saving
+- `index.html`, `styles.css`: the page and its look
+- `js/app.js`: money entries, balance, graph, forecast, goals, backup
+- `js/scene.js`: the 3D balance, coin, and buttons
+- `js/fluid.js`: the liquid background
+- `vendor/three.js`: the parts of three.js the app uses, bundled into one file (MIT license)
+- `fonts/`: Schibsted Grotesk (SIL Open Font License) and `balance-3d.json`, its number shapes for the 3D text
 - `sw.js`: offline support
-- `manifest.webmanifest` and `icons/`: the Home Screen icon and name
+- `manifest.webmanifest`, `icons/`: Home Screen name and icon
