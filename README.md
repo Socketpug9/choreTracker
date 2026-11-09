@@ -11,12 +11,13 @@ It's a web app you add to your Home Screen. It works offline, and your data stay
 - **Forecast:** a straight-line trend through your money in and out over the last 4 weeks. Balance corrections don't count toward it.
 - **Goals:** a target amount, with an optional date. Put a goal on the graph to see its line and the day the forecast reaches it. Goals with a date say whether you're on track, and how much more a week you'd need if not.
 - **Activity:** every entry by day. Tap one to edit or delete it.
-- **Settings:** correct your balance, save or restore a backup, and turn the liquid background off.
+- **Settings:** correct your balance, save or restore a backup, turn the liquid background off, and turn on tilt shimmer.
 
 ## Look
 
-Butter yellow and black, set in Schibsted Grotesk. The balance is big flat type. Behind it floats one 3D holographic foil card (three.js): an icy blue face with fine hologram lines and a sliding white glare, turning violet, pink, and orange toward the edges as it tilts. It does a full turn when money moves.
-Add and Spend are one black control split in two. The background is a live liquid simulation that is always slowly flowing, and you can push it around with your finger.
+Butter yellow and black, set in Schibsted Grotesk, with the balance in big flat type.
+Buttons and the graph's frame are holographic foil: rainbow bands (cyan, blue, violet, pink, peach), fine hologram lines, and a white glare. One shared light (`js/shine.js`) makes all the foil shimmer together. It drifts slowly, moves when you scroll, follows your finger on the button you press, and can follow the phone's tilt (Settings, "Tilt shimmer").
+The background is a live liquid simulation that is always slowly flowing, and you can push it around with your finger.
 
 ## Put it on your iPhone
 
@@ -35,10 +36,9 @@ When you change files, bump `VERSION` in `sw.js` so installed copies pick up the
 
 - `index.html`, `styles.css`: the page and its look
 - `js/app.js`: money entries, balance, graph, forecast, goals, backup
-- `js/scene.js`: the 3D foil card
+- `js/shine.js`: the light that moves the foil shimmer
 - `js/fluid.js`: the liquid background
-- `js/foil.js`: draws the foil's line and crinkle textures
-- `vendor/three.js`: the parts of three.js the app uses, bundled into one file (MIT license)
+- `vendor/three.js`: the parts of three.js the liquid background uses, bundled into one file (MIT license)
 - `fonts/`: Schibsted Grotesk (SIL Open Font License)
 - `sw.js`: offline support
 - `manifest.webmanifest`, `icons/`: Home Screen name and icon

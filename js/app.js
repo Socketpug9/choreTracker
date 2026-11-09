@@ -3,7 +3,7 @@
    Everything is saved in this browser's localStorage, in cents.
    ============================================================ */
 
-import { makeFoil } from './foil.js';
+import { startShine } from './shine.js';
 
 const STORE_KEY = 'stash.v1';
 const MOTION_KEY = 'stash.liquid';
@@ -150,7 +150,6 @@ function goalOutlook(g, bal, slope, today) {
 /* ---------- Rendering ---------- */
 
 let shown = PAGE;
-let scene3d = null;
 
 function render() {
   const today = todayKey();
@@ -187,7 +186,6 @@ function fitBalance() {
     size -= 2;
     p.style.fontSize = `${size}px`;
   }
-  if (scene3d) scene3d.layout();
 }
 
 /* ----- Chart ----- */
@@ -382,7 +380,7 @@ function renderGoals(today, bal, slope) {
         <p class="goal-nums"><b>${money(Math.max(0, bal))}</b> of ${money(g.target)}${g.date ? ` by ${shortDate(g.date)}` : ''}</p>
         <div class="bar" role="progressbar" aria-label="${esc(g.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${pct}%"></i></div>
         <p class="goal-forecast">${o.text}</p>
-        <button type="button" class="goal-show" data-action="chart-goal" aria-pressed="${onChart}">
+        <button type="button" class="goal-show foil-fx" data-action="chart-goal" aria-pressed="${onChart}">
           ${onChart ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>On the graph' : 'Show on graph'}
         </button>
       </li>`;
@@ -678,7 +676,7 @@ function toast(msg, undo) {
 
 let fluid = null;
 function celebrate(dir) {
-  if (scene3d) scene3d.spin(dir);
+  if (shine) shine.flash();
   if (fluid && ms.from) {
     const r = ms.from.getBoundingClientRect();
     if (r.bottom > 0 && r.top < innerHeight) fluid.burst(r.left + r.width / 2, r.top + r.height / 2, dir > 0);
@@ -746,6 +744,15 @@ document.addEventListener('click', (e) => {
       if (fn) fn();
       return;
     }
+    case 'toggle-tilt': {
+      const want = !shine.tiltOn();
+      shine.setTilt(want).then((on) => {
+        $('#tilt-btn').textContent = `Tilt shimmer: ${on ? 'on' : 'off'}`;
+        if (on) toast('Tilt your phone to make the foil shimmer');
+        else toast(want ? 'Motion access is off. Allow it when your phone asks.' : 'Tilt shimmer is off');
+      });
+      return;
+    }
     case 'toggle-motion': {
       const off = localStorage.getItem(MOTION_KEY) === 'off';
       localStorage.setItem(MOTION_KEY, off ? 'on' : 'off');
@@ -778,16 +785,9 @@ if (!liquidOff) {
   $('#fluid').hidden = true;
 }
 
-// Holographic foil textures for the 3D card.
-const foil = makeFoil();
-
-import('./scene.js')
-  .then(({ startScene }) => startScene($('#hero-3d'), $('#hero'), { object: $('#foil-anchor') }, { foil, reducedMotion }))
-  .then((s) => {
-    scene3d = s;
-    document.documentElement.classList.add('has-3d');
-  })
-  .catch((err) => { console.warn('3D unavailable:', err); $('#hero-3d').hidden = true; });
+// The light that makes the foil buttons and graph frame shimmer.
+const shine = startShine({ reducedMotion });
+$('#tilt-btn').textContent = `Tilt shimmer: ${shine.tiltOn() ? 'on' : 'off'}`;
 
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator) {

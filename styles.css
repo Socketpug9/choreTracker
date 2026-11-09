@@ -70,29 +70,11 @@ button { cursor: pointer; touch-action: manipulation; }
   margin: 0 calc(var(--pad) * -1);
   padding: 8px var(--pad) 26px;
 }
-/* The 3D foil card floats behind the balance; all the text sits in front of it. */
-#hero-3d {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-}
-.hero > :not(canvas):not(.foil-anchor) { position: relative; z-index: 1; }
-.foil-anchor {
-  position: absolute;
-  top: 44px;
-  right: 14px;
-  width: 176px;
-  height: 148px;
-}
-
 .brand-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  height: 92px;
+  height: 64px;
 }
 .brand {
   margin: 10px 0 0;
@@ -132,14 +114,13 @@ button { cursor: pointer; touch-action: manipulation; }
 .week:empty { visibility: hidden; }
 .week svg { width: 12px; height: 12px; fill: currentColor; }
 
-/* Add and Spend: one black control split in two, so they read as a pair. */
+/* Add and Spend: one foil control split in two, so they read as a pair. */
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   margin-top: 26px;
   padding: 6px;
   border-radius: 40px;
-  background: var(--ink);
 }
 .act {
   position: relative;
@@ -151,7 +132,7 @@ button { cursor: pointer; touch-action: manipulation; }
   border: 0;
   border-radius: 32px;
   background: transparent;
-  color: var(--paper);
+  color: var(--ink);
   font-weight: 900;
   font-size: 21px;
   letter-spacing: -0.01em;
@@ -163,19 +144,49 @@ button { cursor: pointer; touch-action: manipulation; }
   left: 0;
   top: 18px;
   bottom: 18px;
-  border-left: 1.5px solid var(--line);
+  border-left: 1.5px solid rgba(10, 15, 50, 0.3);
 }
-.act:active { background: var(--key); transform: scale(0.97); }
+.act:active { background: rgba(10, 15, 50, 0.1); transform: scale(0.97); }
 .act-icon {
   display: grid;
   place-items: center;
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--butter);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--butter);
 }
 .act-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; }
+
+/* ---------- Holographic foil ---------- */
+
+/* Anything with .foil-fx is foil: rainbow bands (cyan, blue, violet, pink, peach),
+   fine hologram lines, and a white glare. js/shine.js moves the light by setting
+   --foil-shift, --gx and --gy. Toggles are only foil while they're switched on. */
+:root { --foil-shift: 0px; --gx: 35%; --gy: 30%; }
+.foil-fx:not([aria-checked="false"]):not([aria-pressed="false"]) {
+  color: var(--ink);
+  border-color: transparent;
+  background-color: #8FB4FF;
+  background-image:
+    radial-gradient(150px circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.4) 30%, rgba(255, 255, 255, 0) 72%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.16) 0 1px, rgba(30, 40, 110, 0.08) 1px 3px),
+    /* The bands slide by moving their color stops, so there's never a seam. */
+    repeating-linear-gradient(112deg,
+      #7FE0FF calc(var(--foil-shift) + 0px), #5A8DFF calc(var(--foil-shift) + 80px),
+      #A889FF calc(var(--foil-shift) + 150px), #FF97CC calc(var(--foil-shift) + 220px),
+      #FFB477 calc(var(--foil-shift) + 290px), #FFE39A calc(var(--foil-shift) + 335px),
+      #97EAFF calc(var(--foil-shift) + 390px), #7FE0FF calc(var(--foil-shift) + 470px));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -2px 0 rgba(20, 20, 60, 0.22), 0 8px 20px rgba(80, 50, 0, 0.18);
+}
+
+/* The graph's foil frame, with the black screen inside it. */
+.device { border-radius: 34px; padding: 9px; }
+.device .screen {
+  border-radius: 26px;
+  box-shadow: 0 0 0 1.5px rgba(10, 15, 50, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.device + .block, .card + .device { margin-top: 34px; }
 
 /* ---------- Cards ---------- */
 
@@ -202,7 +213,6 @@ button { cursor: pointer; touch-action: manipulation; }
   font-size: 18px;
 }
 .btn:disabled { opacity: 0.35; cursor: default; }
-.btn-yellow { background: var(--butter); color: var(--ink); }
 .btn-ghost { background: transparent; color: var(--muted); }
 .btn-wide { width: 100%; }
 
@@ -230,7 +240,6 @@ button { cursor: pointer; touch-action: manipulation; }
   height: 34px;
   border-radius: 17px;
 }
-.range button[aria-checked="true"] { background: var(--butter); color: var(--ink); }
 
 .chart {
   position: relative;
@@ -309,7 +318,7 @@ button { cursor: pointer; touch-action: manipulation; }
   font-size: 15px;
   cursor: pointer;
 }
-.pill:active { background: var(--ink); color: var(--butter); }
+.pill:active { filter: brightness(0.9); }
 
 .hint { margin: 12px 4px 0; font-size: 15px; font-weight: 500; }
 
@@ -352,7 +361,6 @@ button { cursor: pointer; touch-action: manipulation; }
   font-weight: 700;
   font-size: 14px;
 }
-.goal-show[aria-pressed="true"] { background: var(--butter); border-color: var(--butter); color: var(--ink); }
 .goal-show svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Activity */
@@ -393,8 +401,6 @@ button { cursor: pointer; touch-action: manipulation; }
   padding: 6px;
   border-radius: 999px;
   background: var(--ink);
-  /* A butter ring keeps it visible over the black cards. */
-  box-shadow: 0 0 0 2px var(--butter), 0 12px 28px rgba(0, 0, 0, 0.35);
   transform: translate(-50%, 140%);
   transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
@@ -433,7 +439,6 @@ button { cursor: pointer; touch-action: manipulation; }
 
 .sign { display: flex; gap: 4px; padding: 4px; margin: 8px auto 0; width: fit-content; border-radius: 999px; background: var(--key); }
 .sign button { border: 0; background: none; color: var(--muted); font-weight: 900; font-size: 15px; height: 36px; padding: 0 20px; border-radius: 18px; }
-.sign button[aria-checked="true"] { background: var(--butter); color: var(--ink); }
 
 .amount {
   display: block;
