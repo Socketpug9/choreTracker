@@ -1,355 +1,213 @@
-// The 3D layer for the top of the app: the balance in black holographic foil,
-// a spinning silver-foil coin, and the 3D Add / Spend buttons. Everything reflects
-// a small yellow "studio" so it matches the page behind it.
+// The 3D piece at the top of the app: one holographic foil card floating behind
+// the balance, like a chrome object behind big type. The card is a beveled frame
+// with an inset face. The face is icy blue foil with fine lines and a white glare,
+// and turns pink, orange, and violet toward the edges as it tilts.
 //
-// Each 3D object follows a normal HTML element (its "anchor"). The HTML stays in
-// charge of layout, tapping, and screen readers; the 3D just draws on top.
+// It follows an HTML element (its "anchor") for size and position, and sits
+// behind the page's text.
 import {
   WebGLRenderer, Scene, PerspectiveCamera, Mesh, Group, Color, MeshBasicMaterial, MeshPhysicalMaterial,
-  BoxGeometry, PlaneGeometry, LatheGeometry, ExtrudeGeometry, Shape, Vector2, BackSide,
-  PMREMGenerator, SRGBColorSpace, ACESFilmicToneMapping, DirectionalLight, MathUtils,
-  TextGeometry, Font, CanvasTexture, RepeatWrapping, NoColorSpace,
+  BoxGeometry, PlaneGeometry, ExtrudeGeometry, Shape, Vector2, BackSide,
+  PMREMGenerator, SRGBColorSpace, NoToneMapping, DirectionalLight, MathUtils,
+  CanvasTexture, RepeatWrapping, NoColorSpace,
 } from '../vendor/three.js';
 
 const BUTTER = 0xF6D33C;
 
-function studio(renderer, { wall, wallScale, lights, blacks, colors = [] }) {
-  // A box room with bright softboxes and dark panels. Shiny things look shiny
-  // because of what they reflect, so this room is what gives them their look.
+// A box room with softboxes and colored panels. Shiny things look the way they
+// do because of what they reflect, so this room is most of the foil's look.
+function studio(renderer) {
   const env = new Scene();
-  env.add(new Mesh(new BoxGeometry(10, 10, 10), new MeshBasicMaterial({ color: new Color(wall).multiplyScalar(wallScale), side: BackSide })));
+  env.add(new Mesh(new BoxGeometry(10, 10, 10), new MeshBasicMaterial({ color: new Color(BUTTER).multiplyScalar(0.55), side: BackSide })));
   const panel = (color, power, [w, h], [x, y, z], [rx, ry]) => {
     const m = new Mesh(new PlaneGeometry(w, h), new MeshBasicMaterial({ color: new Color(color).multiplyScalar(power), side: 2 }));
     m.position.set(x, y, z);
     m.rotation.set(rx, ry, 0);
     env.add(m);
   };
-  for (const l of lights) panel(0xffffff, ...l);
-  for (const b of blacks) panel(0x000000, 1, ...b);
-  for (const c of colors) panel(c.color, c.power, ...c.at);
+  panel(0xffffff, 9, [3.2, 2.2], [-2.2, 2.4, 4.6], [0, Math.PI]); // the big glare, top left in front
+  panel(0xffffff, 5, [7, 1.1], [0, 4.7, 0], [Math.PI / 2, 0]); // overhead strip
+  panel(0xffffff, 3, [1.4, 5], [-4.7, 0.6, 0.6], [0, Math.PI / 2]); // left softbox
+  panel(0x7FD8FF, 2.2, [3, 4], [4.7, 0.2, 0.8], [0, -Math.PI / 2]); // cyan wall
+  panel(0xFF8FC8, 2, [3, 2.4], [-4.7, -1.8, -1.6], [0, Math.PI / 2]); // pink wall
+  panel(0x000000, 1, [10, 4], [0, -4.9, 0], [-Math.PI / 2, 0]); // dark floor
   const pmrem = new PMREMGenerator(renderer);
   const tex = pmrem.fromScene(env, 0.02).texture;
   pmrem.dispose();
   return tex;
 }
 
-function environments(renderer) {
-  const lights = [
-    [7, [7, 1.1], [0, 4.7, 0], [Math.PI / 2, 0]], // overhead strip
-    [4, [1.4, 5], [-4.7, 0.6, 0.6], [0, Math.PI / 2]], // left softbox
-    [2.4, [1.0, 3.6], [4.7, -0.4, -1.4], [0, -Math.PI / 2]], // right softbox
-    [1.8, [3.2, 0.5], [0, -1.6, 4.7], [0, Math.PI]], // front kicker
-  ];
-  // Colored panels give the foil cyan and pink to reflect, like holographic foil under shop lights.
-  const tints = (p) => [
-    { color: 0x6FE3FF, power: 1.6 * p, at: [[2.2, 3.2], [-4.9, 1.2, -2.2], [0, Math.PI / 2]] },
-    { color: 0xFF8FD0, power: 1.5 * p, at: [[2.4, 2.6], [4.9, 1.4, 1.6], [0, -Math.PI / 2]] },
-    { color: 0xB9A2FF, power: 1.2 * p, at: [[3, 1.4], [0, 2.6, -4.9], [0, 0]] },
-  ];
-  // Silver foil studio (Spend button, coin): yellow walls, black floor, colored panels.
-  const holo = studio(renderer, {
-    wall: BUTTER, wallScale: 0.92, lights,
-    blacks: [
-      [[10, 4], [0, -4.9, 0], [-Math.PI / 2, 0]],
-      [[2.6, 3], [2.4, -0.6, -4.9], [0, 0]],
-      [[2.4, 2], [-1.6, -0.8, 4.9], [0, Math.PI]],
-    ],
-    colors: tints(1),
-  });
-  // Softer silver studio for the Spend button: no dark panels, so its label always reads.
-  const soft = studio(renderer, { wall: BUTTER, wallScale: 0.95, lights, blacks: [], colors: tints(1.1) });
-  // Black foil studio (balance, Add button): black walls, white softboxes, faint color.
-  const dark = studio(renderer, {
-    wall: 0x000000, wallScale: 1, lights, blacks: [],
-    colors: [...tints(0.9), { color: BUTTER, power: 1.2, at: [[4, 2], [0, -4.7, 0], [-Math.PI / 2, 0]] }],
-  });
-  return { holo, soft, dark };
-}
-
-let ENV = null;
-let FOIL = null;
-const foilMaterials = [];
-
-function foilTextures(canvases) {
-  const make = (canvas) => {
-    const t = new CanvasTexture(canvas);
-    t.wrapS = t.wrapT = RepeatWrapping;
-    t.colorSpace = NoColorSpace;
-    t.anisotropy = 4;
-    return t;
-  };
-  return { crinkle: make(canvases.crinkle), film: make(canvases.film) };
-}
-// Same foil image, tiled at a different size for each object.
-function tiled(tex, rx, ry = rx) {
-  const t = tex.clone();
-  t.repeat.set(rx, ry);
-  t.needsUpdate = true;
-  return t;
-}
-
-// Holographic shimmer: reflections are recolored through a pastel rainbow
-// (cyan, lilac, pink, peach) that shifts with viewing angle, the foil pattern, and time.
-// Dark parts stay dark, so black foil keeps its black with rainbow glints on top.
+// Recolors the reflections through a holographic palette chosen by how much a
+// surface faces you, plus bands from the foil pattern: cyan head-on, then blue,
+// violet, pink, orange toward grazing angles. Only the brightest spots go white,
+// like the glare on real foil.
 const holoTime = { value: 0 };
-function holo(m, strength) {
-  m.onBeforeCompile = (shader) => {
+function holo(material, { lift = 0, strength = 0.9, base = 0.5, bands = 0.5, glare = 0 } = {}) {
+  material.onBeforeCompile = (shader) => {
     shader.uniforms.uHoloTime = holoTime;
-    shader.uniforms.uFilm = { value: m.iridescenceThicknessMap };
+    shader.uniforms.uFilm = { value: material.iridescenceThicknessMap };
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uHoloTime;\nuniform sampler2D uFilm;')
+      .replace('#include <common>', `#include <common>
+        uniform float uHoloTime;
+        uniform sampler2D uFilm;
+        vec3 holoPalette(float k) {
+          vec3 c = mix(vec3(0.42, 0.86, 1.00), vec3(0.22, 0.62, 1.00), smoothstep(0.00, 0.22, k));
+          c = mix(c, vec3(0.26, 0.40, 1.00), smoothstep(0.22, 0.42, k));
+          c = mix(c, vec3(0.70, 0.46, 0.98), smoothstep(0.42, 0.60, k));
+          c = mix(c, vec3(1.00, 0.50, 0.74), smoothstep(0.60, 0.76, k));
+          c = mix(c, vec3(1.00, 0.64, 0.30), smoothstep(0.76, 0.90, k));
+          return mix(c, vec3(1.00, 0.86, 0.48), smoothstep(0.90, 1.00, k));
+        }`)
       .replace('#include <opaque_fragment>', `
         {
           float film = texture2D(uFilm, vNormalMapUv).g;
-          float facing = dot(normal, normalize(vViewPosition));
-          vec3 rainbow = 0.56 + 0.44 * cos(6.2831 * (film * 0.85 + facing * 1.6 + uHoloTime * 0.05 + vec3(0.0, 0.33, 0.67)));
+          float facing = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
+          float k = clamp((1.0 - facing) * 1.5 + (film - 0.35) * ${bands.toFixed(2)} + ${lift.toFixed(2)} + sin(uHoloTime * 0.35) * 0.05, 0.0, 1.0);
           float lum = dot(outgoingLight, vec3(0.299, 0.587, 0.114));
-          outgoingLight = mix(outgoingLight, rainbow * lum * 1.3, ${strength.toFixed(2)});
+          // Brightness is capped so the colors stay saturated instead of clipping to white.
+          vec3 col = holoPalette(k) * min(${base.toFixed(2)} + lum * 0.85, 1.05);
+          // A soft white glare spot that slides across the surface as it tilts.
+          vec3 refl = reflect(-normalize(vViewPosition), normal);
+          vec2 spot = vNormalMapUv - (vec2(-0.22, 0.2) + refl.xy * vec2(-1.1, -1.1));
+          float g = exp(-dot(spot, spot) / 0.035);
+          col = mix(col, vec3(1.0), clamp(g * ${glare.toFixed(2)}, 0.0, 0.85));
+          outgoingLight = mix(outgoingLight, col, ${strength.toFixed(2)});
         }
         #include <opaque_fragment>`);
   };
-  m.customProgramCacheKey = () => `holo-${strength}`;
-  return m;
+  material.customProgramCacheKey = () => `holo-${lift}-${strength}-${base}-${bands}-${glare}`;
+  return material;
 }
 
-// Black holographic foil under a clear glossy coat: black, with rainbow glints where light hits.
-function blackFoil(rx, ry) {
-  const m = new MeshPhysicalMaterial({
-    color: 0x0a0a0a, metalness: 0.85, roughness: 0.3,
-    normalMap: tiled(FOIL.crinkle, rx, ry), normalScale: new Vector2(0.12, 0.12),
-    iridescence: 1, iridescenceIOR: 1.9, iridescenceThicknessMap: tiled(FOIL.film, rx, ry),
-    iridescenceThicknessMinimum: 120, iridescenceThicknessMaximum: 900,
-    clearcoat: 1, clearcoatRoughness: 0.04,
-    envMap: ENV.dark, envMapIntensity: 2.2,
-  });
-  foilMaterials.push(m);
-  return holo(m, 0.85);
-}
-// Silver holographic foil.
-function silverFoil(rx, ry, env = ENV.holo, crinkle = 0.14) {
-  const m = new MeshPhysicalMaterial({
-    color: 0xffffff, metalness: 1, roughness: 0.16,
-    normalMap: tiled(FOIL.crinkle, rx, ry), normalScale: new Vector2(crinkle, crinkle),
-    iridescence: 1, iridescenceIOR: 1.8, iridescenceThicknessMap: tiled(FOIL.film, rx, ry),
-    iridescenceThicknessMinimum: 150, iridescenceThicknessMaximum: 950,
-    envMap: env, envMapIntensity: 1.15,
-  });
-  foilMaterials.push(m);
-  return holo(m, 0.72);
-}
-
-function coinGeometry(radius, thickness) {
-  // Profile of a coin with a raised rim, spun around its axis.
-  const t = thickness / 2;
-  const r = radius;
-  const pts = [
-    [0, t * 0.62], [r * 0.80, t * 0.62], [r * 0.84, t * 0.98], [r * 0.93, t],
-    [r * 0.985, t * 0.85], [r, t * 0.5], [r, -t * 0.5], [r * 0.985, -t * 0.85],
-    [r * 0.93, -t], [r * 0.84, -t * 0.98], [r * 0.80, -t * 0.62], [0, -t * 0.62],
-  ].map(([x, y]) => new Vector2(x, y));
-  const g = new LatheGeometry(pts, 96);
-  g.rotateX(Math.PI / 2); // face the camera
-  return g;
-}
-
-function pillGeometry(w, h, depth) {
-  const r = h / 2;
-  const x = -w / 2 + r;
+function roundedRect(w, h, r) {
   const s = new Shape();
-  s.moveTo(x, -r);
-  s.lineTo(-x, -r);
-  s.absarc(-x, 0, r, -Math.PI / 2, Math.PI / 2, false);
-  s.lineTo(x, r);
-  s.absarc(x, 0, r, Math.PI / 2, Math.PI * 1.5, false);
-  const bevel = Math.min(8, h * 0.14);
-  const g = new ExtrudeGeometry(s, {
-    depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.85, bevelSegments: 8, curveSegments: 40,
-  });
-  g.translate(0, 0, -depth - bevel);
-  return g;
+  const x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y);
+  s.lineTo(x + w - r, y);
+  s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r);
+  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h);
+  s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r);
+  s.quadraticCurveTo(x, y, x + r, y);
+  return s;
 }
 
-export async function startScene(canvas, host, anchors, { fontUrl, foil, reducedMotion = false } = {}) {
-  const fontData = await (await fetch(fontUrl)).json();
-  const font = new Font(fontData);
-
+export async function startScene(canvas, host, anchors, { foil, reducedMotion = false } = {}) {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
   renderer.outputColorSpace = SRGBColorSpace;
-  renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  // No film-style tone mapping: it washes the foil's colors toward white.
+  renderer.toneMapping = NoToneMapping;
   renderer.setClearColor(0x000000, 0);
 
   const scene = new Scene();
-  ENV = environments(renderer);
-  FOIL = foilTextures(foil);
-  const sun = new DirectionalLight(0xffffff, 0.6);
+  const envMap = studio(renderer);
+  const sun = new DirectionalLight(0xffffff, 0.5);
   sun.position.set(-1, 2, 3);
   scene.add(sun);
 
+  const tex = (canvasEl, repeat) => {
+    const t = new CanvasTexture(canvasEl);
+    t.wrapS = t.wrapT = RepeatWrapping;
+    t.colorSpace = NoColorSpace;
+    t.anisotropy = 8;
+    t.repeat.set(repeat, repeat);
+    return t;
+  };
+
+  // Geometry is built at 200 units wide and scaled to fit the anchor.
+  const W = 200, H = 168, R = 30;
+  const card = new Group();
+  const frameMat = holo(new MeshPhysicalMaterial({
+    color: 0xffffff, metalness: 1, roughness: 0.2,
+    normalMap: tex(foil.crinkle, 1 / 70), normalScale: new Vector2(0.06, 0.06),
+    iridescenceThicknessMap: tex(foil.film, 1 / 200),
+    envMap, envMapIntensity: 1.1,
+  }), { lift: 0.6, strength: 0.9, base: 0.06, bands: 0.18, glare: 0 });
+  const faceMat = holo(new MeshPhysicalMaterial({
+    color: 0xffffff, metalness: 1, roughness: 0.1,
+    normalMap: tex(foil.crinkle, 1 / 160), normalScale: new Vector2(0.03, 0.03),
+    iridescenceThicknessMap: tex(foil.film, 1 / 170),
+    clearcoat: 1, clearcoatRoughness: 0.05,
+    envMap, envMapIntensity: 1.2,
+  }), { lift: 0, strength: 0.94, base: 0.5, bands: 0.75, glare: 1.2 });
+
+  const frame = new Mesh(new ExtrudeGeometry(roundedRect(W, H, R), {
+    depth: 18, bevelEnabled: true, bevelThickness: 9, bevelSize: 8, bevelSegments: 10, curveSegments: 24,
+  }), frameMat);
+  frame.geometry.translate(0, 0, -27);
+  const face = new Mesh(new ExtrudeGeometry(roundedRect(W - 44, H - 44, R - 14), {
+    depth: 2, bevelEnabled: true, bevelThickness: 2, bevelSize: 2, bevelSegments: 4, curveSegments: 24,
+  }), faceMat);
+  face.geometry.translate(0, 0, -1);
+  card.add(frame, face);
+  scene.add(card);
+
   // Camera set up so 1 unit = 1 CSS pixel at z = 0, with a little real perspective.
-  const camera = new PerspectiveCamera(24, 1, 1, 6000);
-  let W = 1, H = 1;
+  const camera = new PerspectiveCamera(26, 1, 1, 6000);
+  let CW = 1, CH = 1;
+  let base = { x: 0, y: 0 };
+  function layout() {
+    const h = host.getBoundingClientRect();
+    const r = anchors.object.getBoundingClientRect();
+    base = { x: r.left - h.left + r.width / 2 - CW / 2, y: CH / 2 - (r.top - h.top + r.height / 2) };
+    card.scale.setScalar(r.width / W);
+  }
   function resize() {
     const r = host.getBoundingClientRect();
-    W = Math.max(1, r.width);
-    H = Math.max(1, r.height);
-    renderer.setSize(W, H, false);
-    camera.aspect = W / H;
-    camera.position.set(0, 0, H / 2 / Math.tan(MathUtils.degToRad(camera.fov / 2)));
+    CW = Math.max(1, r.width);
+    CH = Math.max(1, r.height);
+    renderer.setSize(CW, CH, false);
+    camera.aspect = CW / CH;
+    camera.position.set(0, 0, CH / 2 / Math.tan(MathUtils.degToRad(camera.fov / 2)));
     camera.updateProjectionMatrix();
     layout();
   }
-  // Where an HTML element sits, in scene units.
-  function place(el) {
-    const h = host.getBoundingClientRect();
-    const r = el.getBoundingClientRect();
-    return { x: r.left - h.left + r.width / 2 - W / 2, y: H / 2 - (r.top - h.top + r.height / 2), w: r.width, h: r.height };
-  }
 
-  /* ---------- Balance text ---------- */
-  const balance = new Group();
-  scene.add(balance);
-  // Text UVs are in font units (glyphs are ~100 tall), so tile the foil every ~140 units.
-  const textMat = blackFoil(1 / 90);
-  let textMesh = null;
-  let textValue = '';
-  let flip = 0;
-  function setBalance(str) {
-    if (str === textValue) return;
-    const first = !textValue;
-    textValue = str;
-    if (textMesh) { textMesh.geometry.dispose(); balance.remove(textMesh); }
-    const size = 100;
-    const g = new TextGeometry(str, {
-      font, size, depth: 22, curveSegments: 16, bevelEnabled: true, bevelThickness: 5, bevelSize: 1.5, bevelSegments: 5,
-    });
-    g.computeBoundingBox();
-    const b = g.boundingBox;
-    g.translate(-(b.min.x + b.max.x) / 2, -(b.min.y + b.max.y) / 2, -b.max.z);
-    textMesh = new Mesh(g, textMat);
-    balance.add(textMesh);
-    layout();
-    if (!first && !reducedMotion) flip = 1;
-  }
-
-  /* ---------- Coin ---------- */
-  const coin = new Group();
-  const coinBody = new Mesh(coinGeometry(50, 15), silverFoil(4, 1));
-  const chromeMat = silverFoil(1 / 30);
-  coin.add(coinBody);
-  const dollar = new TextGeometry('$', { font, size: 52, depth: 3, curveSegments: 12, bevelEnabled: true, bevelThickness: 1.6, bevelSize: 1.2, bevelSegments: 3 });
-  dollar.computeBoundingBox();
-  const db = dollar.boundingBox;
-  dollar.translate(-(db.min.x + db.max.x) / 2, -(db.min.y + db.max.y) / 2, 0);
-  const front = new Mesh(dollar, chromeMat);
-  front.position.z = 15 * 0.31 - 1;
-  const back = front.clone();
-  back.rotation.y = Math.PI;
-  back.position.z = -front.position.z;
-  coin.add(front, back);
-  scene.add(coin);
-  let coinSpin = 0;
-  let spinDir = 1;
-  let coinY = 0;
-
-  /* ---------- Buttons ---------- */
-  const buttons = anchors.buttons.map(({ el, look }) => {
-    // Button UVs are in CSS pixels, so tile the foil every ~150px.
-    const mesh = new Mesh(new PlaneGeometry(1, 1), look === 'chrome' ? silverFoil(1 / 110, 1 / 110, ENV.soft, 0.05) : blackFoil(1 / 110));
-    scene.add(mesh);
-    const state = { el, mesh, w: 0, h: 0, press: 0, target: 0 };
-    el.addEventListener('pointerdown', () => { state.target = 1; });
-    const up = () => { state.target = 0; };
-    el.addEventListener('pointerup', up);
-    el.addEventListener('pointerleave', up);
-    el.addEventListener('pointercancel', up);
-    return state;
-  });
-
-  function layout() {
-    if (textMesh) {
-      const p = place(anchors.balance);
-      textMesh.geometry.computeBoundingBox();
-      const b = textMesh.geometry.boundingBox;
-      const bw = b.max.x - b.min.x;
-      const s = Math.min(p.w / bw, (p.h * 0.86) / (b.max.y - b.min.y));
-      // Line the 3D number up with the left edge of the text it replaces.
-      balance.position.set(p.x - p.w / 2 + (bw * s) / 2, p.y, 0);
-      balance.scale.setScalar(s);
-    }
-    const c = place(anchors.coin);
-    coinY = c.y;
-    coin.position.set(c.x, c.y, 0);
-    coin.scale.setScalar(Math.min(c.w, c.h) / 100);
-    for (const b of buttons) {
-      const p = place(b.el);
-      if (Math.abs(p.w - b.w) > 0.5 || Math.abs(p.h - b.h) > 0.5) {
-        b.mesh.geometry.dispose();
-        b.mesh.geometry = pillGeometry(p.w, p.h, 10);
-        b.w = p.w; b.h = p.h;
-      }
-      b.mesh.position.set(p.x, p.y, 0);
-    }
-  }
-
-  /* ---------- Motion ---------- */
   const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
   window.addEventListener('pointermove', (e) => {
-    tilt.ty = ((e.clientX / window.innerWidth) - 0.5) * 0.5;
-    tilt.tx = ((e.clientY / window.innerHeight) - 0.5) * 0.3;
+    tilt.ty = ((e.clientX / window.innerWidth) - 0.5) * 0.6;
+    tilt.tx = ((e.clientY / window.innerHeight) - 0.5) * 0.4;
   }, { passive: true });
 
   let visible = true;
   new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }).observe(host);
   new ResizeObserver(resize).observe(host);
-  if (document.fonts) document.fonts.ready.then(layout);
 
+  let flip = 0, flipDir = 1;
   let last = performance.now();
-  function frame(t) {
-    requestAnimationFrame(frame);
+  function frameLoop(t) {
+    requestAnimationFrame(frameLoop);
     const dt = Math.min((t - last) / 1000, 0.05);
     last = t;
     if (!visible) return;
-    const time = t / 1000;
-    const k = 1 - Math.exp(-dt * 6);
-
+    const time = reducedMotion ? 0 : t / 1000;
+    holoTime.value = time;
+    const k = 1 - Math.exp(-dt * 4);
     tilt.x += (tilt.tx - tilt.x) * k;
     tilt.y += (tilt.ty - tilt.y) * k;
-    const sway = reducedMotion ? 0 : Math.sin(time * 0.6) * 0.12;
-    balance.rotation.set(tilt.x * 0.5 + (reducedMotion ? 0 : Math.sin(time * 0.45) * 0.05), sway + tilt.y, 0);
+
+    // A slow drift, so the foil keeps catching the light.
+    let ry = -0.42 + Math.sin(time * 0.32) * 0.38 + tilt.y;
+    const rx = 0.18 + Math.sin(time * 0.23 + 1) * 0.14 + tilt.x;
     if (flip > 0) {
-      flip = Math.max(0, flip - dt * 2.4);
-      const e = flip * flip;
-      balance.rotation.x -= e * 1.3;
+      flip = Math.max(0, flip - dt * 1.1);
+      const e = 1 - flip;
+      ry += flipDir * Math.PI * 2 * (e < 0.5 ? 4 * e * e * e : 1 - Math.pow(-2 * e + 2, 3) / 2);
     }
-
-    if (!reducedMotion) coin.rotation.y += dt * (0.7 + coinSpin * coinSpin * 16 * spinDir);
-    coinSpin = Math.max(0, coinSpin - dt * 0.9);
-    coin.rotation.x = -0.25 + tilt.x * 0.6;
-    coin.position.y = coinY + (reducedMotion ? 0 : Math.sin(time * 1.3) * 4);
-
-    for (const b of buttons) {
-      b.press += (b.target - b.press) * (1 - Math.exp(-dt * 22));
-      b.mesh.position.z = -b.press * 9;
-      b.mesh.scale.setScalar(1 - b.press * 0.035);
-      b.mesh.rotation.set(tilt.x * 0.35, tilt.y * 0.35 + sway * 0.6, 0);
-    }
-    // Slowly turn the reflections so the foil keeps shimmering, even when nothing moves.
-    holoTime.value = reducedMotion ? 0 : time;
-    if (!reducedMotion) {
-      const turn = Math.sin(time * 0.35) * 0.55 + tilt.y * 0.8;
-      for (const m of foilMaterials) m.envMapRotation.set(Math.sin(time * 0.23) * 0.2, turn, 0);
-    }
+    card.rotation.set(rx, ry, -0.08 + Math.sin(time * 0.27) * 0.04);
+    card.position.set(base.x, base.y + Math.sin(time * 0.9) * 5, 0);
     renderer.render(scene, camera);
   }
 
   resize();
-  requestAnimationFrame(frame);
+  requestAnimationFrame(frameLoop);
 
   return {
-    setBalance,
     layout,
-    spin(direction = 1) { coinSpin = 1; spinDir = direction < 0 ? -1 : 1; },
+    // A full turn when money moves (backwards for spending).
+    spin(direction = 1) { if (!reducedMotion) { flip = 1; flipDir = direction < 0 ? -1 : 1; } },
   };
 }

@@ -161,7 +161,6 @@ function render() {
   const text = money(bal);
   $('#balance-text').textContent = text;
   fitBalance();
-  if (scene3d) scene3d.setBalance(text);
 
   const weekStart = addDays(today, -6);
   const week = state.txns.filter((t) => t.kind !== 'set' && keyOf(t) >= weekStart).reduce((s, t) => s + t.amt, 0);
@@ -779,32 +778,14 @@ if (!liquidOff) {
   $('#fluid').hidden = true;
 }
 
-// Holographic foil: one set of textures for the 3D pieces, and a colored one for card edges.
+// Holographic foil textures for the 3D card.
 const foil = makeFoil();
-document.documentElement.style.setProperty('--foil', `url(${foil.rim.toDataURL()})`);
-{
-  // The card edges shimmer as you scroll, like tilting foil in the light.
-  let queued = false;
-  addEventListener('scroll', () => {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(() => {
-      queued = false;
-      document.documentElement.style.setProperty('--foil-y', `${Math.round(scrollY * -0.6)}px`);
-    });
-  }, { passive: true });
-}
 
 import('./scene.js')
-  .then(({ startScene }) => startScene($('#hero-3d'), $('#hero'), {
-    balance: $('#balance-text'),
-    coin: $('#coin-anchor'),
-    buttons: [...document.querySelectorAll('#actions .act')].map((el) => ({ el, look: el.dataset.look })),
-  }, { fontUrl: 'fonts/balance-3d.json', foil, reducedMotion }))
+  .then(({ startScene }) => startScene($('#hero-3d'), $('#hero'), { object: $('#foil-anchor') }, { foil, reducedMotion }))
   .then((s) => {
     scene3d = s;
     document.documentElement.classList.add('has-3d');
-    scene3d.setBalance($('#balance-text').textContent);
   })
   .catch((err) => { console.warn('3D unavailable:', err); $('#hero-3d').hidden = true; });
 

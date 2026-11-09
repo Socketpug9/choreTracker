@@ -70,22 +70,29 @@ button { cursor: pointer; touch-action: manipulation; }
   margin: 0 calc(var(--pad) * -1);
   padding: 8px var(--pad) 26px;
 }
+/* The 3D foil card floats behind the balance; all the text sits in front of it. */
 #hero-3d {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 2;
+  z-index: 0;
 }
-.hero > :not(canvas) { position: relative; z-index: 1; }
-.hero .actions { z-index: 3; }
+.hero > :not(canvas):not(.foil-anchor) { position: relative; z-index: 1; }
+.foil-anchor {
+  position: absolute;
+  top: 44px;
+  right: 14px;
+  width: 176px;
+  height: 148px;
+}
 
 .brand-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  height: 96px;
+  height: 92px;
 }
 .brand {
   margin: 10px 0 0;
@@ -93,7 +100,6 @@ button { cursor: pointer; touch-action: manipulation; }
   font-size: 22px;
   letter-spacing: -0.02em;
 }
-.coin-anchor { width: 96px; height: 96px; margin-right: 6px; }
 
 .balance-label {
   margin: 0 0 2px;
@@ -110,7 +116,6 @@ button { cursor: pointer; touch-action: manipulation; }
   white-space: nowrap;
 }
 .balance span { display: inline-block; }
-.has-3d .balance span { color: transparent; }
 
 .week {
   display: inline-flex;
@@ -127,52 +132,50 @@ button { cursor: pointer; touch-action: manipulation; }
 .week:empty { visibility: hidden; }
 .week svg { width: 12px; height: 12px; fill: currentColor; }
 
+/* Add and Spend: one black control split in two, so they read as a pair. */
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
   margin-top: 26px;
+  padding: 6px;
+  border-radius: 40px;
+  background: var(--ink);
 }
 .act {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 66px;
+  gap: 10px;
+  height: 64px;
   border: 0;
-  border-radius: 33px;
+  border-radius: 32px;
+  background: transparent;
+  color: var(--paper);
   font-weight: 900;
   font-size: 21px;
   letter-spacing: -0.01em;
-  transition: transform 0.12s ease;
+  transition: background-color 0.15s ease, transform 0.12s ease;
 }
-.act svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
-.act:active { transform: scale(0.965) translateY(2px); }
-.act-add { background: var(--ink); color: var(--butter); }
-.act-spend { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
-.has-3d .act { background: transparent; box-shadow: none; }
-
-/* ---------- Foil edges ---------- */
-
-/* A thin holographic foil edge on the black pieces. The foil image is drawn by
-   js/foil.js; --foil-y moves it as you scroll so it shimmers. */
-.card, .goal, .dock { position: relative; isolation: isolate; }
-.card::after, .goal::after, .dock::after {
+.act + .act::before {
   content: "";
   position: absolute;
-  inset: 0;
-  z-index: -1;
-  padding: 2px;
-  border-radius: inherit;
-  background: var(--foil) 0 var(--foil-y, 0) / 380px 380px repeat;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  pointer-events: none;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  border-left: 1.5px solid var(--line);
 }
-.card::after, .goal::after { z-index: 0; }
-.card > *, .goal > * { position: relative; z-index: 1; }
-.card > .chart { position: relative; }
+.act:active { background: var(--key); transform: scale(0.97); }
+.act-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--butter);
+  color: var(--ink);
+}
+.act-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; }
 
 /* ---------- Cards ---------- */
 
@@ -387,29 +390,18 @@ button { cursor: pointer; touch-action: manipulation; }
   bottom: calc(env(safe-area-inset-bottom) + 14px);
   z-index: 20;
   display: flex;
-  gap: 8px;
   padding: 6px;
   border-radius: 999px;
   background: var(--ink);
+  /* A butter ring keeps it visible over the black cards. */
+  box-shadow: 0 0 0 2px var(--butter), 0 12px 28px rgba(0, 0, 0, 0.35);
   transform: translate(-50%, 140%);
   transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 .dock.show { transform: translate(-50%, 0); }
-.dock-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 50px;
-  padding: 0 22px;
-  border: 0;
-  border-radius: 25px;
-  background: var(--butter);
-  color: var(--ink);
-  font-weight: 900;
-  font-size: 17px;
-}
-.dock-spend { background: var(--paper); }
-.dock-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; }
+.dock-btn { height: 52px; padding: 0 22px; font-size: 17px; border-radius: 26px; }
+.dock-btn .act-icon { width: 26px; height: 26px; }
+.dock-btn .act-icon svg { width: 16px; height: 16px; }
 
 /* ---------- Sheets ---------- */
 

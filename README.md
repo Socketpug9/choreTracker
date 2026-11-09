@@ -5,8 +5,8 @@ It's a web app you add to your Home Screen. It works offline, and your data stay
 
 ## What it does
 
-- **Balance:** your total at the top, as glossy 3D numbers, with how much it changed this week.
-- **Add / Spend:** big 3D buttons open a keypad. Quick amounts ($5 to $100), an optional note, and a date if you're catching up on past entries. Every change can be undone from the message that pops up.
+- **Balance:** your total at the top, with how much it changed this week.
+- **Add / Spend:** one split button that opens a keypad. Quick amounts ($5 to $100), an optional note, and a date if you're catching up on past entries. Every change can be undone from the message that pops up.
 - **Graph:** your balance over the last 2 or 4 weeks, and a forecast for the same length of time ahead. Drag across it to see any day.
 - **Forecast:** a straight-line trend through your money in and out over the last 4 weeks. Balance corrections don't count toward it.
 - **Goals:** a target amount, with an optional date. Put a goal on the graph to see its line and the day the forecast reaches it. Goals with a date say whether you're on track, and how much more a week you'd need if not.
@@ -15,8 +15,8 @@ It's a web app you add to your Home Screen. It works offline, and your data stay
 
 ## Look
 
-Butter yellow and black, set in Schibsted Grotesk. The background is a live liquid simulation that is always slowly flowing, and you can push it around with your finger.
-The balance, coin, and buttons are real 3D (three.js) in holographic foil: silver foil for the coin and Spend, black foil for the balance and Add. The black cards have foil edges that shimmer as you scroll. The foil textures are drawn by the app itself in `js/foil.js`.
+Butter yellow and black, set in Schibsted Grotesk. The balance is big flat type. Behind it floats one 3D holographic foil card (three.js): an icy blue face with fine hologram lines and a sliding white glare, turning violet, pink, and orange toward the edges as it tilts. It does a full turn when money moves.
+Add and Spend are one black control split in two. The background is a live liquid simulation that is always slowly flowing, and you can push it around with your finger.
 
 ## Put it on your iPhone
 
@@ -35,10 +35,10 @@ When you change files, bump `VERSION` in `sw.js` so installed copies pick up the
 
 - `index.html`, `styles.css`: the page and its look
 - `js/app.js`: money entries, balance, graph, forecast, goals, backup
-- `js/scene.js`: the 3D balance, coin, and buttons
+- `js/scene.js`: the 3D foil card
 - `js/fluid.js`: the liquid background
-- `js/foil.js`: draws the holographic foil textures
+- `js/foil.js`: draws the foil's line and crinkle textures
 - `vendor/three.js`: the parts of three.js the app uses, bundled into one file (MIT license)
-- `fonts/`: Schibsted Grotesk (SIL Open Font License) and `balance-3d.json`, its number shapes for the 3D text
+- `fonts/`: Schibsted Grotesk (SIL Open Font License)
 - `sw.js`: offline support
 - `manifest.webmanifest`, `icons/`: Home Screen name and icon

@@ -24,20 +24,20 @@
   <main id="app">
     <section class="hero" id="hero">
       <canvas id="hero-3d" aria-hidden="true"></canvas>
+      <div class="foil-anchor" id="foil-anchor" aria-hidden="true"></div>
       <div class="brand-row">
         <p class="brand">Stash</p>
-        <div class="coin-anchor" id="coin-anchor" aria-hidden="true"></div>
       </div>
       <p class="balance-label" id="balance-label">Balance</p>
       <p class="balance" aria-labelledby="balance-label"><span id="balance-text">$0.00</span></p>
       <p class="week" id="week-change"></p>
       <div class="actions" id="actions">
-        <button type="button" class="act act-add" data-action="add" data-look="lacquer">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <button type="button" class="act act-add" data-action="add">
+          <span class="act-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
           Add
         </button>
-        <button type="button" class="act act-spend" data-action="spend" data-look="chrome">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>
+        <button type="button" class="act act-spend" data-action="spend">
+          <span class="act-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></span>
           Spend
         </button>
       </div>
@@ -102,11 +102,11 @@
   </main>
 
   <div class="dock" id="dock" aria-hidden="true">
-    <button type="button" class="dock-btn" data-action="add" tabindex="-1">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add
+    <button type="button" class="act dock-btn" data-action="add" tabindex="-1">
+      <span class="act-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Add
     </button>
-    <button type="button" class="dock-btn dock-spend" data-action="spend" tabindex="-1">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>Spend
+    <button type="button" class="act dock-btn" data-action="spend" tabindex="-1">
+      <span class="act-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></span>Spend
     </button>
   </div>
 
