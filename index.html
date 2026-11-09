@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Chores</title>
+  <meta name="description" content="A simple chore tracker for your phone.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Chores">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#EEF3F4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E1830" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="app">
+    <section id="view-today" class="view" aria-labelledby="today-title">
+      <header class="hero">
+        <p class="date" id="today-date"></p>
+        <h1 id="today-title" class="headline"></h1>
+        <div class="progress" id="today-progress" aria-hidden="true"></div>
+      </header>
+      <div id="install-tip" class="tip" hidden>
+        <p>To put this on your Home Screen, tap <strong>Share</strong> in Safari, then <strong>Add to Home Screen</strong>.</p>
+        <button type="button" class="tip-close" data-action="dismiss-tip" aria-label="Hide tip">✕</button>
+      </div>
+      <ul class="list" id="today-list"></ul>
+      <h2 class="section-title" id="upcoming-title" hidden>Coming up</h2>
+      <ul class="list list-quiet" id="upcoming-list"></ul>
+    </section>
+
+    <section id="view-all" class="view" aria-labelledby="all-title" hidden>
+      <header class="hero hero-small">
+        <h1 id="all-title" class="headline">All chores</h1>
+      </header>
+      <ul class="list" id="all-list"></ul>
+      <h2 class="section-title">Backup</h2>
+      <p class="fine">Your chores are saved only on this phone. Save a backup file now and then so you don't lose them.</p>
+      <div class="backup">
+        <button type="button" class="btn btn-quiet" data-action="export">Save backup</button>
+        <label class="btn btn-quiet">
+          Restore backup
+          <input type="file" id="import-file" accept="application/json,.json" hidden>
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button type="button" class="tab" data-tab="today" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" /></svg>
+      <span>Today</span>
+    </button>
+    <button type="button" class="add" data-action="add" aria-label="Add chore">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+    </button>
+    <button type="button" class="tab" data-tab="all">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" /></svg>
+      <span>All chores</span>
+    </button>
+  </nav>
+
+  <dialog id="editor" class="sheet" aria-labelledby="editor-title">
+    <form id="editor-form" method="dialog" novalidate>
+      <div class="sheet-head">
+        <button type="button" class="link" data-action="close">Cancel</button>
+        <h2 id="editor-title">New chore</h2>
+        <button type="submit" class="link link-strong" value="save">Save</button>
+      </div>
+
+      <label class="field">
+        <span class="field-label">Chore</span>
+        <input type="text" name="name" id="f-name" maxlength="60" autocomplete="off" placeholder="Wash the dishes" required>
+      </label>
+      <p class="error" id="f-error" hidden>Give the chore a name.</p>
+
+      <fieldset class="field">
+        <legend class="field-label">Repeats</legend>
+        <div class="segmented" role="radiogroup">
+          <label><input type="radio" name="type" value="daily" checked><span>Every day</span></label>
+          <label><input type="radio" name="type" value="weekdays"><span>Some days</span></label>
+          <label><input type="radio" name="type" value="interval"><span>Every few days</span></label>
+          <label><input type="radio" name="type" value="once"><span>Once</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="field opt" data-for="weekdays" hidden>
+        <legend class="field-label">On these days</legend>
+        <div class="days" id="f-days"></div>
+      </fieldset>
+
+      <div class="field opt" data-for="interval" hidden>
+        <span class="field-label">How often</span>
+        <div class="stepper">
+          <button type="button" data-action="step" data-step="-1" aria-label="Fewer days">−</button>
+          <output id="f-every-out">Every 3 days</output>
+          <button type="button" data-action="step" data-step="1" aria-label="More days">+</button>
+          <input type="hidden" name="every" id="f-every" value="3">
+        </div>
+      </div>
+
+      <label class="field opt" data-for="interval" hidden>
+        <span class="field-label">Next due</span>
+        <input type="date" name="start" id="f-start">
+      </label>
+
+      <label class="field opt" data-for="once" hidden>
+        <span class="field-label">Due on</span>
+        <input type="date" name="date" id="f-date">
+      </label>
+
+      <button type="button" class="btn btn-danger" id="f-delete" data-action="delete" hidden>Delete chore</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
