@@ -11,13 +11,13 @@ It's a web app you add to your Home Screen. It works offline, and your data stay
 - **Forecast:** a straight-line trend through your money in and out over the last 4 weeks. Balance corrections don't count toward it.
 - **Goals:** a target amount, with an optional date. Put a goal on the graph to see its line and the day the forecast reaches it. Goals with a date say whether you're on track, and how much more a week you'd need if not.
 - **Activity:** every entry by day. Tap one to edit or delete it.
-- **Settings:** correct your balance, save or restore a backup, turn the liquid background off, and turn on tilt shimmer.
+- **Settings:** correct your balance, save or restore a backup, and turn the liquid background off.
 
 ## Look
 
 Butter yellow and black, set in Schibsted Grotesk, with the balance in big flat type.
-Buttons and the graph's frame are holographic foil: rainbow bands (cyan, blue, violet, pink, peach), fine hologram lines, and a white glare. One shared light (`js/shine.js`) makes all the foil shimmer together. It drifts slowly, moves when you scroll, follows your finger on the button you press, and can follow the phone's tilt (Settings, "Tilt shimmer").
 The background is a live liquid simulation that is always slowly flowing, and you can push it around with your finger.
+Sheets (add, spend, goals) are made of liquid: black ink rises from the bottom and forms the sheet when it opens, and a closing sheet drains away and soaks into the gold background. With the liquid turned off, sheets simply slide up.
 
 ## Put it on your iPhone
 
@@ -36,8 +36,7 @@ When you change files, bump `VERSION` in `sw.js` so installed copies pick up the
 
 - `index.html`, `styles.css`: the page and its look
 - `js/app.js`: money entries, balance, graph, forecast, goals, backup
-- `js/shine.js`: the light that moves the foil shimmer
-- `js/fluid.js`: the liquid background
+- `js/fluid.js`: the liquid background, and the ink that forms and melts the sheets
 - `vendor/three.js`: the parts of three.js the liquid background uses, bundled into one file (MIT license)
 - `fonts/`: Schibsted Grotesk (SIL Open Font License)
 - `sw.js`: offline support

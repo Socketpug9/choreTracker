@@ -1,12 +1,11 @@
 // Offline support. Bump VERSION when files change so phones pick up the new ones.
-const VERSION = 'stash-v4';
+const VERSION = 'stash-v5';
 const FILES = [
   './',
   './index.html',
   './styles.css',
   './js/app.js',
   './js/fluid.js',
-  './js/shine.js',
   './vendor/three.js',
   './fonts/sg-500.woff2',
   './fonts/sg-700.woff2',

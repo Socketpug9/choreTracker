@@ -3,8 +3,6 @@
    Everything is saved in this browser's localStorage, in cents.
    ============================================================ */
 
-import { startShine } from './shine.js';
-
 const STORE_KEY = 'stash.v1';
 const MOTION_KEY = 'stash.liquid';
 const PAGE = 25;
@@ -380,7 +378,7 @@ function renderGoals(today, bal, slope) {
         <p class="goal-nums"><b>${money(Math.max(0, bal))}</b> of ${money(g.target)}${g.date ? ` by ${shortDate(g.date)}` : ''}</p>
         <div class="bar" role="progressbar" aria-label="${esc(g.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${pct}%"></i></div>
         <p class="goal-forecast">${o.text}</p>
-        <button type="button" class="goal-show foil-fx" data-action="chart-goal" aria-pressed="${onChart}">
+        <button type="button" class="goal-show" data-action="chart-goal" aria-pressed="${onChart}">
           ${onChart ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>On the graph' : 'Show on graph'}
         </button>
       </li>`;
@@ -494,12 +492,39 @@ function openMoney(mode, from, entry) {
   $('#chips').hidden = mode === 'set';
   $('#money-delete').hidden = mode !== 'edit';
   drawAmount();
-  sheet.showModal();
+  openSheet(sheet);
+}
+
+/* ----- Opening and closing sheets ----- */
+
+// With the liquid on, black ink flows in and forms the sheet, and closing melts it
+// back into ink that soaks into the background. Otherwise sheets just slide up.
+let ink = null;
+
+function openSheet(d) {
+  d.classList.remove('formed', 'slide', 'forming');
+  d.classList.add(ink ? 'forming' : 'slide');
+  d.showModal();
+  // Start focus on the title, so no button starts out highlighted.
+  d.querySelector('h2').focus({ preventScroll: true });
   hideDock(true);
+  if (!ink) return;
+  ink.form(d.getBoundingClientRect()).then(() => {
+    if (!d.open) return;
+    d.classList.remove('forming');
+    d.classList.add('formed');
+  });
 }
 
 function closeSheet(d) {
+  if (!d.open) return;
+  const rect = d.getBoundingClientRect();
   d.close();
+  d.classList.remove('forming', 'formed', 'slide');
+  if (ink) {
+    ink.dissolve(rect);
+    if (fluid) setTimeout(() => fluid.pool(rect), 280);
+  }
 }
 
 function saveMoney() {
@@ -583,8 +608,7 @@ function openGoal(id) {
   $('#goal-date').min = todayKey();
   $('#goal-error').hidden = true;
   $('#goal-delete').hidden = !g;
-  goalSheet.showModal();
-  hideDock(true);
+  openSheet(goalSheet);
 }
 
 function saveGoal() {
@@ -621,10 +645,13 @@ $('#goal-form').addEventListener('submit', (e) => { e.preventDefault(); saveGoal
 $('#goal-amount').addEventListener('blur', (e) => { const c = parseMoney(e.target.value); if (c > 0) e.target.value = money(c); });
 goalSheet.addEventListener('close', () => hideDock(false));
 
-// Tapping the dimmed area above a sheet closes it.
-[sheet, goalSheet].forEach((d) => d.addEventListener('click', (e) => {
-  if (e.target === d && e.clientY < d.getBoundingClientRect().top) closeSheet(d);
-}));
+// Tapping the dimmed area above a sheet closes it, and so does Escape on a keyboard.
+[sheet, goalSheet].forEach((d) => {
+  d.addEventListener('click', (e) => {
+    if (e.target === d && e.clientY < d.getBoundingClientRect().top) closeSheet(d);
+  });
+  d.addEventListener('cancel', (e) => { e.preventDefault(); closeSheet(d); });
+});
 
 /* ---------- Backup ---------- */
 
@@ -676,7 +703,6 @@ function toast(msg, undo) {
 
 let fluid = null;
 function celebrate(dir) {
-  if (shine) shine.flash();
   if (fluid && ms.from) {
     const r = ms.from.getBoundingClientRect();
     if (r.bottom > 0 && r.top < innerHeight) fluid.burst(r.left + r.width / 2, r.top + r.height / 2, dir > 0);
@@ -744,15 +770,6 @@ document.addEventListener('click', (e) => {
       if (fn) fn();
       return;
     }
-    case 'toggle-tilt': {
-      const want = !shine.tiltOn();
-      shine.setTilt(want).then((on) => {
-        $('#tilt-btn').textContent = `Tilt shimmer: ${on ? 'on' : 'off'}`;
-        if (on) toast('Tilt your phone to make the foil shimmer');
-        else toast(want ? 'Motion access is off. Allow it when your phone asks.' : 'Tilt shimmer is off');
-      });
-      return;
-    }
     case 'toggle-motion': {
       const off = localStorage.getItem(MOTION_KEY) === 'off';
       localStorage.setItem(MOTION_KEY, off ? 'on' : 'off');
@@ -779,15 +796,18 @@ $('#motion-btn').textContent = liquidOff ? 'Turn on liquid' : 'Turn off liquid';
 
 if (!liquidOff) {
   import('./fluid.js')
-    .then(({ startFluid }) => { fluid = startFluid($('#fluid'), { reducedMotion }); })
+    .then(({ startFluid, startInk }) => {
+      fluid = startFluid($('#fluid'), { reducedMotion });
+      if (!reducedMotion) {
+        ink = startInk($('#ink'));
+        window.addEventListener('resize', () => ink.resize());
+      }
+    })
     .catch((err) => { console.warn('Liquid background unavailable:', err); $('#fluid').hidden = true; });
 } else {
   $('#fluid').hidden = true;
 }
 
-// The light that makes the foil buttons and graph frame shimmer.
-const shine = startShine({ reducedMotion });
-$('#tilt-btn').textContent = `Tilt shimmer: ${shine.tiltOn() ? 'on' : 'off'}`;
 
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator) {
