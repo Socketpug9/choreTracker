@@ -152,6 +152,28 @@ button { cursor: pointer; touch-action: manipulation; }
 .act-spend { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
 .has-3d .act { background: transparent; box-shadow: none; }
 
+/* ---------- Foil edges ---------- */
+
+/* A thin holographic foil edge on the black pieces. The foil image is drawn by
+   js/foil.js; --foil-y moves it as you scroll so it shimmers. */
+.card, .goal, .dock { position: relative; isolation: isolate; }
+.card::after, .goal::after, .dock::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  padding: 2px;
+  border-radius: inherit;
+  background: var(--foil) 0 var(--foil-y, 0) / 380px 380px repeat;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+.card::after, .goal::after { z-index: 0; }
+.card > *, .goal > * { position: relative; z-index: 1; }
+.card > .chart { position: relative; }
+
 /* ---------- Cards ---------- */
 
 .card {

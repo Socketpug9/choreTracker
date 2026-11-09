@@ -1,16 +1,18 @@
 // A small "stable fluids" simulation (velocity, pressure, swirl) drawn as crisp
 // two-tone ink: deep marigold liquid moving on butter yellow. Runs on the GPU via three.js.
+// A slow, ever-changing current keeps it moving, and three drifting pour points keep
+// adding liquid as the old shapes fade, so the background never stops or empties out.
 import {
   WebGLRenderer, WebGLRenderTarget, Scene, OrthographicCamera, Mesh, PlaneGeometry,
   ShaderMaterial, HalfFloatType, LinearFilter, NearestFilter, RGBAFormat, Vector2, Vector3,
 } from '../vendor/three.js';
 
 const SIM_RES = 128;
-const DYE_RES = 512;
+const DYE_RES = 1024;
 const PRESSURE_ITERATIONS = 18;
-const CURL = 22;
+const CURL = 6;
 const VELOCITY_DISSIPATION = 0.35;
-const DYE_DISSIPATION = 0.32;
+const DYE_DISSIPATION = 0.3;
 const SPLAT_FORCE = 5200;
 
 const baseVert = /* glsl */`
@@ -27,6 +29,30 @@ const baseVert = /* glsl */`
 `;
 
 const shaders = {
+  // Pulls the velocity toward a slowly changing, swirling current (curl of a moving wave field).
+  current: `
+    uniform sampler2D uVelocity; uniform float time, aspect, strength, rate; varying vec2 vUv;
+    float psi(vec2 p) {
+      return sin(p.x * 3.1 + time * 0.13) * cos(p.y * 2.4 - time * 0.09)
+        + 0.55 * sin(p.y * 4.3 + p.x * 1.7 + time * 0.07 + 1.3)
+        + 0.35 * cos(p.x * 5.2 - p.y * 3.1 - time * 0.11 + 2.1);
+    }
+    void main() {
+      vec2 p = vec2(vUv.x * aspect, vUv.y) * 2.0;
+      float e = 0.01;
+      vec2 flow = vec2(psi(p + vec2(0.0, e)) - psi(p - vec2(0.0, e)), psi(p - vec2(e, 0.0)) - psi(p + vec2(e, 0.0))) / (2.0 * e);
+      vec2 v = texture2D(uVelocity, vUv).xy;
+      v += (flow * strength - v) * rate;
+      gl_FragColor = vec4(v, 0.0, 1.0);
+    }`,
+  // Adds liquid at the three drifting pour points.
+  emit: `
+    uniform sampler2D uTarget; uniform vec2 e0, e1, e2; uniform float aspect, radius, amount; varying vec2 vUv;
+    float g(vec2 c) { vec2 d = vUv - c; d.x *= aspect; return exp(-dot(d, d) / radius); }
+    void main() {
+      float a = (g(e0) + g(e1) * 0.85 + g(e2) * 0.7) * amount;
+      gl_FragColor = vec4(texture2D(uTarget, vUv).xyz + a, 1.0);
+    }`,
   splat: `
     uniform sampler2D uTarget; uniform float aspectRatio; uniform vec3 color; uniform vec2 point; uniform float radius;
     varying vec2 vUv;
@@ -112,7 +138,7 @@ const hex = (h) => new Vector3(...[1, 3, 5].map((i) => parseInt(h.slice(i, i + 2
 export function startFluid(canvas, { paper = '#F6D33C', ink = '#E8A90E', rim = '#C98A00', reducedMotion = false } = {}) {
   const renderer = new WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
   renderer.autoClear = false;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 
   const scene = new Scene();
   const camera = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -187,7 +213,21 @@ export function startFluid(canvas, { paper = '#F6D33C', ink = '#E8A90E', rim = '
     dye.swap();
   }
 
-  function step(dt) {
+  // Slow paths for the pour points (Lissajous curves, so they never repeat exactly).
+  const emitters = [new Vector2(), new Vector2(), new Vector2()];
+  function moveEmitters(t) {
+    // Each one wanders around its own part of the screen (top left, middle right, bottom left).
+    emitters[0].set(0.30 + 0.22 * Math.sin(t * 0.051 + 0.4), 0.78 + 0.14 * Math.sin(t * 0.033 + 1.9));
+    emitters[1].set(0.72 + 0.20 * Math.sin(t * 0.042 + 2.8), 0.50 + 0.16 * Math.sin(t * 0.047 + 4.1));
+    emitters[2].set(0.32 + 0.22 * Math.sin(t * 0.037 + 5.1), 0.20 + 0.14 * Math.sin(t * 0.029 + 0.7));
+  }
+
+  function step(dt, t) {
+    pass(mats.current, { uVelocity: velocity.read.texture, time: t, aspect, strength: 0.6, rate: 1 - Math.exp(-dt * 0.6) }, velocity.write);
+    velocity.swap();
+    moveEmitters(t);
+    pass(mats.emit, { uTarget: dye.read.texture, e0: emitters[0], e1: emitters[1], e2: emitters[2], aspect, radius: 0.005, amount: 0.68 * dt }, dye.write);
+    dye.swap();
     pass(mats.curl, { uVelocity: velocity.read.texture }, curl);
     pass(mats.vorticity, { uVelocity: velocity.read.texture, uCurl: curl.texture, curl: CURL, dt }, velocity.write);
     velocity.swap();
@@ -228,17 +268,6 @@ export function startFluid(canvas, { paper = '#F6D33C', ink = '#E8A90E', rim = '
   window.addEventListener('pointercancel', end, { passive: true });
 
   const queue = [];
-  let ambientAt = 0;
-  function ambient(t) {
-    if (reducedMotion || t < ambientAt) return;
-    ambientAt = t + 2600 + Math.random() * 2400;
-    const x = 0.1 + Math.random() * 0.8;
-    const y = 0.08 + Math.random() * 0.84;
-    const a = Math.random() * Math.PI * 2;
-    const f = 380 + Math.random() * 380;
-    queue.push([x, y, Math.cos(a) * f, Math.sin(a) * f, 0.9, 0.006 + Math.random() * 0.006]);
-  }
-
   // A pour of liquid from a point on screen (used when money moves).
   function burst(clientX, clientY, up = true) {
     const x = clientX / window.innerWidth;
@@ -251,10 +280,11 @@ export function startFluid(canvas, { paper = '#F6D33C', ink = '#E8A90E', rim = '
   }
 
   size();
-  // Start with a few shapes already on screen so it never opens blank.
-  for (let i = 0; i < (reducedMotion ? 3 : 5); i++) {
-    queue.push([0.15 + Math.random() * 0.7, 0.15 + Math.random() * 0.7, (Math.random() - 0.5) * 600, (Math.random() - 0.5) * 600, 1.2, 0.012 + Math.random() * 0.01]);
-  }
+  // Start where the pour points are, with shapes already formed, so it never opens blank.
+  // The clock starts at a random spot so the layout is different each time you open it.
+  const t0 = Math.random() * 1000;
+  moveEmitters(t0);
+  for (const e of emitters) queue.push([e.x, e.y, (Math.random() - 0.5) * 300, (Math.random() - 0.5) * 300, 1.3, 0.014 + Math.random() * 0.008]);
 
   let last = performance.now();
   let raf = 0;
@@ -262,9 +292,8 @@ export function startFluid(canvas, { paper = '#F6D33C', ink = '#E8A90E', rim = '
     raf = requestAnimationFrame(frame);
     const dt = Math.min((t - last) / 1000, 1 / 30);
     last = t;
-    ambient(t);
     while (queue.length) splat(...queue.shift());
-    step(reducedMotion ? dt * 0.4 : dt);
+    step(reducedMotion ? dt * 0.3 : dt, t0 + (t / 1000) * (reducedMotion ? 0.3 : 1));
     draw();
   }
   raf = requestAnimationFrame(frame);

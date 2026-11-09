@@ -3,6 +3,8 @@
    Everything is saved in this browser's localStorage, in cents.
    ============================================================ */
 
+import { makeFoil } from './foil.js';
+
 const STORE_KEY = 'stash.v1';
 const MOTION_KEY = 'stash.liquid';
 const PAGE = 25;
@@ -777,12 +779,28 @@ if (!liquidOff) {
   $('#fluid').hidden = true;
 }
 
+// Holographic foil: one set of textures for the 3D pieces, and a colored one for card edges.
+const foil = makeFoil();
+document.documentElement.style.setProperty('--foil', `url(${foil.rim.toDataURL()})`);
+{
+  // The card edges shimmer as you scroll, like tilting foil in the light.
+  let queued = false;
+  addEventListener('scroll', () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      document.documentElement.style.setProperty('--foil-y', `${Math.round(scrollY * -0.6)}px`);
+    });
+  }, { passive: true });
+}
+
 import('./scene.js')
   .then(({ startScene }) => startScene($('#hero-3d'), $('#hero'), {
     balance: $('#balance-text'),
     coin: $('#coin-anchor'),
     buttons: [...document.querySelectorAll('#actions .act')].map((el) => ({ el, look: el.dataset.look })),
-  }, { fontUrl: 'fonts/balance-3d.json', reducedMotion }))
+  }, { fontUrl: 'fonts/balance-3d.json', foil, reducedMotion }))
   .then((s) => {
     scene3d = s;
     document.documentElement.classList.add('has-3d');

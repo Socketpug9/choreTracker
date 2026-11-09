@@ -15,8 +15,8 @@ It's a web app you add to your Home Screen. It works offline, and your data stay
 
 ## Look
 
-Butter yellow and black, set in Schibsted Grotesk. The background is a live liquid simulation you can push around with your finger.
-The balance, coin, and buttons are real 3D (three.js) and reflect a yellow studio, so they match the page.
+Butter yellow and black, set in Schibsted Grotesk. The background is a live liquid simulation that is always slowly flowing, and you can push it around with your finger.
+The balance, coin, and buttons are real 3D (three.js) in holographic foil: silver foil for the coin and Spend, black foil for the balance and Add. The black cards have foil edges that shimmer as you scroll. The foil textures are drawn by the app itself in `js/foil.js`.
 
 ## Put it on your iPhone
 
@@ -37,6 +37,7 @@ When you change files, bump `VERSION` in `sw.js` so installed copies pick up the
 - `js/app.js`: money entries, balance, graph, forecast, goals, backup
 - `js/scene.js`: the 3D balance, coin, and buttons
 - `js/fluid.js`: the liquid background
+- `js/foil.js`: draws the holographic foil textures
 - `vendor/three.js`: the parts of three.js the app uses, bundled into one file (MIT license)
 - `fonts/`: Schibsted Grotesk (SIL Open Font License) and `balance-3d.json`, its number shapes for the 3D text
 - `sw.js`: offline support

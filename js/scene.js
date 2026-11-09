@@ -1,6 +1,6 @@
-// The 3D layer for the top of the app: the balance as glossy black 3D numbers,
-// a spinning chrome coin, and the 3D Add / Spend buttons. Everything reflects a
-// small yellow "studio" so it matches the page behind it.
+// The 3D layer for the top of the app: the balance in black holographic foil,
+// a spinning silver-foil coin, and the 3D Add / Spend buttons. Everything reflects
+// a small yellow "studio" so it matches the page behind it.
 //
 // Each 3D object follows a normal HTML element (its "anchor"). The HTML stays in
 // charge of layout, tapping, and screen readers; the 3D just draws on top.
@@ -8,12 +8,12 @@ import {
   WebGLRenderer, Scene, PerspectiveCamera, Mesh, Group, Color, MeshBasicMaterial, MeshPhysicalMaterial,
   BoxGeometry, PlaneGeometry, LatheGeometry, ExtrudeGeometry, Shape, Vector2, BackSide,
   PMREMGenerator, SRGBColorSpace, ACESFilmicToneMapping, DirectionalLight, MathUtils,
-  TextGeometry, Font,
+  TextGeometry, Font, CanvasTexture, RepeatWrapping, NoColorSpace,
 } from '../vendor/three.js';
 
 const BUTTER = 0xF6D33C;
 
-function studio(renderer, { wall, wallScale, lights, blacks, accent }) {
+function studio(renderer, { wall, wallScale, lights, blacks, colors = [] }) {
   // A box room with bright softboxes and dark panels. Shiny things look shiny
   // because of what they reflect, so this room is what gives them their look.
   const env = new Scene();
@@ -26,7 +26,7 @@ function studio(renderer, { wall, wallScale, lights, blacks, accent }) {
   };
   for (const l of lights) panel(0xffffff, ...l);
   for (const b of blacks) panel(0x000000, 1, ...b);
-  if (accent) panel(accent.color, accent.power, ...accent.at);
+  for (const c of colors) panel(c.color, c.power, ...c.at);
   const pmrem = new PMREMGenerator(renderer);
   const tex = pmrem.fromScene(env, 0.02).texture;
   pmrem.dispose();
@@ -40,40 +40,103 @@ function environments(renderer) {
     [2.4, [1.0, 3.6], [4.7, -0.4, -1.4], [0, -Math.PI / 2]], // right softbox
     [1.8, [3.2, 0.5], [0, -1.6, 4.7], [0, Math.PI]], // front kicker
   ];
-  // Butter studio for the chrome button: mostly yellow, so its face stays even and readable.
-  const butter = studio(renderer, {
-    wall: BUTTER, wallScale: 0.95, lights,
-    blacks: [[[10, 3.4], [0, -4.9, 0], [-Math.PI / 2, 0]]],
-  });
-  // High-contrast studio for the coin: yellow walls broken up by big black panels.
-  const coin = studio(renderer, {
-    wall: BUTTER, wallScale: 0.9, lights,
+  // Colored panels give the foil cyan and pink to reflect, like holographic foil under shop lights.
+  const tints = (p) => [
+    { color: 0x6FE3FF, power: 1.6 * p, at: [[2.2, 3.2], [-4.9, 1.2, -2.2], [0, Math.PI / 2]] },
+    { color: 0xFF8FD0, power: 1.5 * p, at: [[2.4, 2.6], [4.9, 1.4, 1.6], [0, -Math.PI / 2]] },
+    { color: 0xB9A2FF, power: 1.2 * p, at: [[3, 1.4], [0, 2.6, -4.9], [0, 0]] },
+  ];
+  // Silver foil studio (Spend button, coin): yellow walls, black floor, colored panels.
+  const holo = studio(renderer, {
+    wall: BUTTER, wallScale: 0.92, lights,
     blacks: [
       [[10, 4], [0, -4.9, 0], [-Math.PI / 2, 0]],
-      [[3.6, 4], [2.2, 0.8, -4.9], [0, 0]],
-      [[3, 5], [-4.9, -1.4, -1.5], [0, Math.PI / 2]],
-      [[2.2, 2.6], [-1.8, 1.2, 4.9], [0, Math.PI]],
-      [[1.6, 3], [2.4, -1.4, 4.9], [0, Math.PI]],
-      [[3.4, 1.8], [0, -0.6, 4.9], [0, Math.PI]],
+      [[2.6, 3], [2.4, -0.6, -4.9], [0, 0]],
+      [[2.4, 2], [-1.6, -0.8, 4.9], [0, Math.PI]],
     ],
+    colors: tints(1),
   });
-  // Dark studio for black lacquer: black walls, white softboxes, a hint of butter.
+  // Softer silver studio for the Spend button: no dark panels, so its label always reads.
+  const soft = studio(renderer, { wall: BUTTER, wallScale: 0.95, lights, blacks: [], colors: tints(1.1) });
+  // Black foil studio (balance, Add button): black walls, white softboxes, faint color.
   const dark = studio(renderer, {
     wall: 0x000000, wallScale: 1, lights, blacks: [],
-    accent: { color: BUTTER, power: 1.2, at: [[4, 2], [0, -4.7, 0], [-Math.PI / 2, 0]] },
+    colors: [...tints(0.9), { color: BUTTER, power: 1.2, at: [[4, 2], [0, -4.7, 0], [-Math.PI / 2, 0]] }],
   });
-  return { butter, coin, dark };
+  return { holo, soft, dark };
 }
 
 let ENV = null;
-const lacquer = () => new MeshPhysicalMaterial({
-  color: 0x020202, metalness: 0, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.03,
-  envMap: ENV.dark, envMapIntensity: 1.3,
-});
-const chrome = (env = ENV.butter) => new MeshPhysicalMaterial({
-  color: 0xffffff, metalness: 1, roughness: 0.06, iridescence: 0.85, iridescenceIOR: 1.6,
-  iridescenceThicknessMinimum: 220, iridescenceThicknessMaximum: 640, envMap: env, envMapIntensity: 1.1,
-});
+let FOIL = null;
+const foilMaterials = [];
+
+function foilTextures(canvases) {
+  const make = (canvas) => {
+    const t = new CanvasTexture(canvas);
+    t.wrapS = t.wrapT = RepeatWrapping;
+    t.colorSpace = NoColorSpace;
+    t.anisotropy = 4;
+    return t;
+  };
+  return { crinkle: make(canvases.crinkle), film: make(canvases.film) };
+}
+// Same foil image, tiled at a different size for each object.
+function tiled(tex, rx, ry = rx) {
+  const t = tex.clone();
+  t.repeat.set(rx, ry);
+  t.needsUpdate = true;
+  return t;
+}
+
+// Holographic shimmer: reflections are recolored through a pastel rainbow
+// (cyan, lilac, pink, peach) that shifts with viewing angle, the foil pattern, and time.
+// Dark parts stay dark, so black foil keeps its black with rainbow glints on top.
+const holoTime = { value: 0 };
+function holo(m, strength) {
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uHoloTime = holoTime;
+    shader.uniforms.uFilm = { value: m.iridescenceThicknessMap };
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float uHoloTime;\nuniform sampler2D uFilm;')
+      .replace('#include <opaque_fragment>', `
+        {
+          float film = texture2D(uFilm, vNormalMapUv).g;
+          float facing = dot(normal, normalize(vViewPosition));
+          vec3 rainbow = 0.56 + 0.44 * cos(6.2831 * (film * 0.85 + facing * 1.6 + uHoloTime * 0.05 + vec3(0.0, 0.33, 0.67)));
+          float lum = dot(outgoingLight, vec3(0.299, 0.587, 0.114));
+          outgoingLight = mix(outgoingLight, rainbow * lum * 1.3, ${strength.toFixed(2)});
+        }
+        #include <opaque_fragment>`);
+  };
+  m.customProgramCacheKey = () => `holo-${strength}`;
+  return m;
+}
+
+// Black holographic foil under a clear glossy coat: black, with rainbow glints where light hits.
+function blackFoil(rx, ry) {
+  const m = new MeshPhysicalMaterial({
+    color: 0x0a0a0a, metalness: 0.85, roughness: 0.3,
+    normalMap: tiled(FOIL.crinkle, rx, ry), normalScale: new Vector2(0.12, 0.12),
+    iridescence: 1, iridescenceIOR: 1.9, iridescenceThicknessMap: tiled(FOIL.film, rx, ry),
+    iridescenceThicknessMinimum: 120, iridescenceThicknessMaximum: 900,
+    clearcoat: 1, clearcoatRoughness: 0.04,
+    envMap: ENV.dark, envMapIntensity: 2.2,
+  });
+  foilMaterials.push(m);
+  return holo(m, 0.85);
+}
+// Silver holographic foil.
+function silverFoil(rx, ry, env = ENV.holo, crinkle = 0.14) {
+  const m = new MeshPhysicalMaterial({
+    color: 0xffffff, metalness: 1, roughness: 0.16,
+    normalMap: tiled(FOIL.crinkle, rx, ry), normalScale: new Vector2(crinkle, crinkle),
+    iridescence: 1, iridescenceIOR: 1.8, iridescenceThicknessMap: tiled(FOIL.film, rx, ry),
+    iridescenceThicknessMinimum: 150, iridescenceThicknessMaximum: 950,
+    envMap: env, envMapIntensity: 1.15,
+  });
+  foilMaterials.push(m);
+  return holo(m, 0.72);
+}
 
 function coinGeometry(radius, thickness) {
   // Profile of a coin with a raised rim, spun around its axis.
@@ -106,12 +169,12 @@ function pillGeometry(w, h, depth) {
   return g;
 }
 
-export async function startScene(canvas, host, anchors, { fontUrl, reducedMotion = false } = {}) {
+export async function startScene(canvas, host, anchors, { fontUrl, foil, reducedMotion = false } = {}) {
   const fontData = await (await fetch(fontUrl)).json();
   const font = new Font(fontData);
 
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -119,6 +182,7 @@ export async function startScene(canvas, host, anchors, { fontUrl, reducedMotion
 
   const scene = new Scene();
   ENV = environments(renderer);
+  FOIL = foilTextures(foil);
   const sun = new DirectionalLight(0xffffff, 0.6);
   sun.position.set(-1, 2, 3);
   scene.add(sun);
@@ -146,7 +210,8 @@ export async function startScene(canvas, host, anchors, { fontUrl, reducedMotion
   /* ---------- Balance text ---------- */
   const balance = new Group();
   scene.add(balance);
-  const textMat = lacquer();
+  // Text UVs are in font units (glyphs are ~100 tall), so tile the foil every ~140 units.
+  const textMat = blackFoil(1 / 90);
   let textMesh = null;
   let textValue = '';
   let flip = 0;
@@ -157,7 +222,7 @@ export async function startScene(canvas, host, anchors, { fontUrl, reducedMotion
     if (textMesh) { textMesh.geometry.dispose(); balance.remove(textMesh); }
     const size = 100;
     const g = new TextGeometry(str, {
-      font, size, depth: 22, curveSegments: 10, bevelEnabled: true, bevelThickness: 5, bevelSize: 1.5, bevelSegments: 5,
+      font, size, depth: 22, curveSegments: 16, bevelEnabled: true, bevelThickness: 5, bevelSize: 1.5, bevelSegments: 5,
     });
     g.computeBoundingBox();
     const b = g.boundingBox;
@@ -170,8 +235,8 @@ export async function startScene(canvas, host, anchors, { fontUrl, reducedMotion
 
   /* ---------- Coin ---------- */
   const coin = new Group();
-  const chromeMat = chrome(ENV.coin);
-  const coinBody = new Mesh(coinGeometry(50, 15), chromeMat);
+  const coinBody = new Mesh(coinGeometry(50, 15), silverFoil(4, 1));
+  const chromeMat = silverFoil(1 / 30);
   coin.add(coinBody);
   const dollar = new TextGeometry('$', { font, size: 52, depth: 3, curveSegments: 12, bevelEnabled: true, bevelThickness: 1.6, bevelSize: 1.2, bevelSegments: 3 });
   dollar.computeBoundingBox();
@@ -190,7 +255,8 @@ export async function startScene(canvas, host, anchors, { fontUrl, reducedMotion
 
   /* ---------- Buttons ---------- */
   const buttons = anchors.buttons.map(({ el, look }) => {
-    const mesh = new Mesh(new PlaneGeometry(1, 1), look === 'chrome' ? chrome() : lacquer());
+    // Button UVs are in CSS pixels, so tile the foil every ~150px.
+    const mesh = new Mesh(new PlaneGeometry(1, 1), look === 'chrome' ? silverFoil(1 / 110, 1 / 110, ENV.soft, 0.05) : blackFoil(1 / 110));
     scene.add(mesh);
     const state = { el, mesh, w: 0, h: 0, press: 0, target: 0 };
     el.addEventListener('pointerdown', () => { state.target = 1; });
@@ -268,6 +334,12 @@ export async function startScene(canvas, host, anchors, { fontUrl, reducedMotion
       b.mesh.position.z = -b.press * 9;
       b.mesh.scale.setScalar(1 - b.press * 0.035);
       b.mesh.rotation.set(tilt.x * 0.35, tilt.y * 0.35 + sway * 0.6, 0);
+    }
+    // Slowly turn the reflections so the foil keeps shimmering, even when nothing moves.
+    holoTime.value = reducedMotion ? 0 : time;
+    if (!reducedMotion) {
+      const turn = Math.sin(time * 0.35) * 0.55 + tilt.y * 0.8;
+      for (const m of foilMaterials) m.envMapRotation.set(Math.sin(time * 0.23) * 0.2, turn, 0);
     }
     renderer.render(scene, camera);
   }
